@@ -4,9 +4,14 @@
     {
       "src": "index.js",
       "use": "@vercel/node"
+    },
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
     }
   ],
   "rewrites": [
+    { "source": "/admin/auth", "destination": "/api/admin-auth" },
     { "source": "/(.*)", "destination": "/index.js" }
   ],
   "headers": [
