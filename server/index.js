@@ -44,15 +44,26 @@ app.use(bodyParser.urlencoded({limit: '50mb', extended: true, parameterLimit: 50
 
 app.use(cookieParser());
 
-// Configure CORS to allow requests from your deployed frontend
+// Configure CORS for Vercel serverless functions
+app.use((req, res, next) => {
+  // Set CORS headers manually for all responses
+  res.setHeader('Access-Control-Allow-Origin', 'https://eventxmanagement.vercel.app');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle OPTIONS method
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
+// Also keep the standard cors middleware as a fallback
 app.use(cors({
-  origin: [
-    'https://eventxmanagement.vercel.app',  // Your deployed frontend URL
-    'http://localhost:3000'                 // Local development URL
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: ['https://eventxmanagement.vercel.app', 'http://localhost:3000'],
+  credentials: true
 }));
 
 // Add preflight OPTIONS handling for all routes
