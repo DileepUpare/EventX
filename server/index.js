@@ -43,7 +43,20 @@ app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({limit: '50mb', extended: true, parameterLimit: 50000}));
 
 app.use(cookieParser());
-app.use(cors());
+
+// Configure CORS to allow requests from your deployed frontend
+app.use(cors({
+  origin: [
+    'https://eventxmanagement.vercel.app',  // Your deployed frontend URL
+    'http://localhost:3000'                 // Local development URL
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Add preflight OPTIONS handling for all routes
+app.options('*', cors());
 
 // Serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
