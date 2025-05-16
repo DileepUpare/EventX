@@ -46,29 +46,36 @@ export default function signin({ adminIdCookie }) {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        const response = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/admin/auth`,
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email: email,
-                    password: password,
-                }),
-            }
-        );
-        const data = await response.json();
-        if (response.status === 200) {
-            setMessage({ errorMsg: "", successMsg: data.msg });
-            console.log(data);
-            setStep(2); // Move to next step on the same page
+        try {
+            // Use our local API proxy endpoint instead of calling the backend directly
+            const response = await fetch(
+                `/api/admin-auth-proxy`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        password: password,
+                    }),
+                }
+            );
+            
+            const data = await response.json();
+            if (response.status === 200) {
+                setMessage({ errorMsg: "", successMsg: data.msg });
+                console.log(data);
+                setStep(2); // Move to next step on the same page
 
-            setAdminToken(data.admin_token); // set cookie when signed up
-        } else {
-            console.error(`Failed with status code ${response.status}`);
-            setMessage({ errorMsg: data.msg, successMsg: "" });
+                setAdminToken(data.admin_token); // set cookie when signed up
+            } else {
+                console.error(`Failed with status code ${response.status}`);
+                setMessage({ errorMsg: data.msg || "Authentication failed", successMsg: "" });
+            }
+        } catch (error) {
+            console.error("Error during authentication:", error);
+            setMessage({ errorMsg: "Connection error. Please try again.", successMsg: "" });
         }
     };
 
