@@ -63,11 +63,22 @@ app.use((req, res, next) => {
 // Also keep the standard cors middleware as a fallback
 app.use(cors({
   origin: ['https://eventxmanagement.vercel.app', 'http://localhost:3000'],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
 
 // Add preflight OPTIONS handling for all routes
 app.options('*', cors());
+
+// Add a global OPTIONS handler as a last resort
+app.all('*', function(req, res, next) {
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+  next();
+});
 
 // Serve static files from the uploads directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
