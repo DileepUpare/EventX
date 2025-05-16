@@ -47,9 +47,9 @@ export default function signin({ adminIdCookie }) {
     const handleSubmit = async (event) => {
         event.preventDefault();
         try {
-            // Use our local API proxy endpoint instead of calling the backend directly
+            // Use our simpler proxy endpoint
             const response = await fetch(
-                `/api/admin-auth-proxy`,
+                `/api/admin-auth-simple`,
                 {
                     method: "POST",
                     headers: {
@@ -62,10 +62,18 @@ export default function signin({ adminIdCookie }) {
                 }
             );
             
-            const data = await response.json();
+            // Try to parse the response as JSON
+            let data;
+            try {
+                data = await response.json();
+            } catch (e) {
+                console.error("Error parsing response:", e);
+                throw new Error("Invalid response from server");
+            }
+            
             if (response.status === 200) {
                 setMessage({ errorMsg: "", successMsg: data.msg });
-                console.log(data);
+                console.log("Authentication successful:", data);
                 setStep(2); // Move to next step on the same page
 
                 setAdminToken(data.admin_token); // set cookie when signed up

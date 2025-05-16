@@ -1,16 +1,5 @@
-// Specific proxy endpoint for admin authentication
-// This handles the admin/auth endpoint specifically
-import { NextApiRequest, NextApiResponse } from 'next';
-
-// Helper function to parse request body
-const parseBody = (req) => {
-  try {
-    return req.body;
-  } catch (e) {
-    console.error('Error parsing request body:', e);
-    return {};
-  }
-};
+// Simple admin auth proxy that uses node-fetch for server-side requests
+import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -34,16 +23,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Get the backend URL from environment variables
-    const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://eventxmanagement-server.vercel.app';
-    console.log('Backend URL:', backendUrl);
+    // Hard-code the backend URL for simplicity
+    const backendUrl = 'https://eventxmanagement-server.vercel.app';
     
-    // Parse the request body
-    const body = parseBody(req);
-    console.log('Request body:', JSON.stringify(body));
+    // Log the request for debugging
+    console.log('Request body:', req.body);
     
-    // Make the request to the backend admin/auth endpoint
-    console.log('Sending request to:', `${backendUrl}/admin/auth`);
+    // Make a direct request to the admin/auth endpoint
     const response = await fetch(`${backendUrl}/admin/auth`, {
       method: 'POST',
       headers: {
@@ -51,27 +37,36 @@ export default async function handler(req, res) {
         'Accept': 'application/json',
         'Origin': 'https://eventxmanagement.vercel.app'
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        email: req.body.email,
+        password: req.body.password
+      })
     });
 
-    console.log('Response status:', response.status);
-    
-    // Get the response data
+    // Get the response as text first for debugging
     const text = await response.text();
+    console.log('Response status:', response.status);
     console.log('Response text:', text);
     
+    // Try to parse the response as JSON
     let data;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      console.error('Error parsing response JSON:', e);
-      return res.status(500).json({ error: 'Invalid JSON response from server', details: text });
+      console.error('Error parsing response:', e);
+      return res.status(500).json({ 
+        error: 'Invalid response from server',
+        details: text
+      });
     }
 
-    // Return the response from the backend API
+    // Return the response data
     return res.status(response.status).json(data);
   } catch (error) {
     console.error('Error in admin auth proxy:', error);
-    return res.status(500).json({ error: 'Error proxying admin authentication request', details: error.message });
+    return res.status(500).json({ 
+      error: 'Error processing request',
+      message: error.message
+    });
   }
 }
