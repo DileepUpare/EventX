@@ -44,20 +44,45 @@ app.use(bodyParser.urlencoded({limit: '50mb', extended: true, parameterLimit: 50
 
 app.use(cookieParser());
 
-// Configure CORS for Vercel serverless functions
+// Enhanced CORS configuration
+const corsOptions = {
+    origin: function (origin, callback) {
+        const allowedOrigins = ['https://eventxmanagement.vercel.app', 'http://localhost:3000'];
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            console.log('CORS blocked origin:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    credentials: true,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
+};
+
+// Apply CORS middleware
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options('*', cors(corsOptions));
+
+// Special handler for admin auth endpoint
+app.options('/admin/auth', (req, res) => {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://eventxmanagement.vercel.app');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.status(204).end();
+});
+
+// Global middleware to ensure CORS headers are set for all responses
 app.use((req, res, next) => {
-  // Set CORS headers manually for all responses
-  res.setHeader('Access-Control-Allow-Origin', 'https://eventxmanagement.vercel.app');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
-  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type,Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
-  // Handle OPTIONS method
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-  
-  next();
+    res.header('Access-Control-Allow-Origin', req.headers.origin || 'https://eventxmanagement.vercel.app');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
 });
 
 // Also keep the standard cors middleware as a fallback

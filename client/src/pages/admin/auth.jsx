@@ -44,46 +44,65 @@ export default function signin({ adminIdCookie }) {
         }
     }, []);
 
+    // Function to handle admin authentication directly
     const handleSubmit = async (event) => {
         event.preventDefault();
         try {
-            // Use our simpler proxy endpoint
-            const response = await fetch(
-                `/api/admin-auth-simple`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        password: password,
-                    }),
-                }
-            );
+            // Show loading message
+            setMessage({ errorMsg: "", successMsg: "Authenticating..." });
             
-            // Try to parse the response as JSON
-            let data;
-            try {
-                data = await response.json();
-            } catch (e) {
-                console.error("Error parsing response:", e);
-                throw new Error("Invalid response from server");
-            }
+            // Create a manual XHR request to handle CORS issues
+            const adminAuthPromise = new Promise((resolve, reject) => {
+                const xhr = new XMLHttpRequest();
+                xhr.open("POST", `${process.env.NEXT_PUBLIC_API_URL}/admin/auth`, true);
+                xhr.setRequestHeader("Content-Type", "application/json");
+                xhr.withCredentials = true;
+                
+                xhr.onload = function() {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            resolve(data);
+                        } catch (e) {
+                            reject(new Error("Invalid JSON response"));
+                        }
+                    } else {
+                        try {
+                            const errorData = JSON.parse(xhr.responseText);
+                            reject(errorData);
+                        } catch (e) {
+                            reject(new Error(`Request failed with status ${xhr.status}`));
+                        }
+                    }
+                };
+                
+                xhr.onerror = function() {
+                    reject(new Error("Network error occurred"));
+                };
+                
+                // Send the request with credentials
+                xhr.send(JSON.stringify({
+                    email: email,
+                    password: password,
+                }));
+            });
             
-            if (response.status === 200) {
-                setMessage({ errorMsg: "", successMsg: data.msg });
-                console.log("Authentication successful:", data);
-                setStep(2); // Move to next step on the same page
-
-                setAdminToken(data.admin_token); // set cookie when signed up
-            } else {
-                console.error(`Failed with status code ${response.status}`);
-                setMessage({ errorMsg: data.msg || "Authentication failed", successMsg: "" });
-            }
+            // Wait for the authentication to complete
+            const data = await adminAuthPromise;
+            
+            // Handle successful authentication
+            setMessage({ errorMsg: "", successMsg: data.msg || "Authentication successful" });
+            console.log("Authentication successful:", data);
+            setStep(2); // Move to next step on the same page
+            
+            // Set the admin token cookie
+            setAdminToken(data.admin_token);
         } catch (error) {
             console.error("Error during authentication:", error);
-            setMessage({ errorMsg: "Connection error. Please try again.", successMsg: "" });
+            setMessage({ 
+                errorMsg: error.msg || "Authentication failed. Please check your credentials and try again.", 
+                successMsg: "" 
+            });
         }
     };
 
